@@ -8,14 +8,12 @@ import {
   UInt64,
   Poseidon,
   PrivateKey,
-  CircuitValue,
+  Struct,
   PublicKey,
   Signature,
   UInt32,
   Permissions,
-  isReady,
   Mina,
-  shutdown,
   Party,
   Bool,
   Encoding,
@@ -35,9 +33,9 @@ interface Allowances {
   spenders: string[];
 }
 
-class Event extends CircuitValue {
+class Event extends Struct({
   value: Field[];
-
+}) {
   constructor(value: Field[]) {
     super();
     this.value = value;
@@ -60,9 +58,9 @@ class AllowanceEvent extends Event {
   }
 }
 
-class Bytes extends CircuitValue {
-  value: string;
-
+class Bytes extends Struct({
+  value: String
+}) {
   constructor(value: string) {
     super();
     this.value = value;
@@ -134,7 +132,7 @@ const uploadFile = async (file: any): Promise<string> => {
 };
 
 let initialBalance = 10_000_000_000;
-class ERC721 extends SmartContract {
+export class ERC721 extends SmartContract {
   @state(Field) _allowances = State<Field>();
   @state(Field) _balanceOf = State<Field>();
   @state(PublicKey) _owner = State<PublicKey>();
@@ -159,7 +157,7 @@ class ERC721 extends SmartContract {
       ...Permissions.default(),
       editState: Permissions.proofOrSignature(),
     });
-    this.balance.addInPlace(UInt64.fromNumber(initialBalance));
+    this.balance.addInPlace(UInt64.from(initialBalance));
     this._balanceOf.set(
       Poseidon.hash(
         Encoding.stringToFields(
@@ -520,7 +518,7 @@ const main = async () => {
     console.log('\n====== DEPLOYING ======\n');
     await Mina.transaction(owner, () => {
       const p = Party.createSigned(owner, { isSameAsFeePayer: true });
-      p.balance.subInPlace(UInt64.fromNumber(initialBalance));
+      p.balance.subInPlace(UInt64.from(initialBalance));
       zkAppInstance.deploy({
         verificationKey: undefined,
         zkappKey: zkAppPrivkey,
@@ -735,12 +733,6 @@ const main = async () => {
 
   console.log('\n====== STATE AFTER TRANSFER 1 ======\n');
   getStatus();
-
-  try {
-    shutdown();
-  } catch (error) {
-    console.log('Error in shutdown:>>', error);
-  }
 };
 
 main(); // mints 2 token and transfer the other one
@@ -796,7 +788,7 @@ async function deploy(
   let zkApp = new ERC721(zkAppAddress);
   await Mina.transaction(account, () => {
     const p = Party.createSigned(account, { isSameAsFeePayer: true });
-    p.balance.subInPlace(UInt64.fromNumber(initialBalance));
+    p.balance.subInPlace(UInt64.from(initialBalance));
     zkApp.deploy({
       verificationKey: undefined,
       zkappKey: zkAppPrivKey,
